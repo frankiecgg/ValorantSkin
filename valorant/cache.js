@@ -454,8 +454,8 @@ export const getWeapon = async (uuid) => {
 }
 
 export const getPrice = async (uuid) => {
+    
     if (!prices) await fetchData([prices]);
-
     if (prices[uuid]) return prices[uuid];
 
     if (!bundles) await fetchData([bundles]); // todo rewrite this part

@@ -36,8 +36,8 @@ export const activeWaitForAuthQueueResponse = async (interaction, queueResponse,
     }
 }
 
-export const loginUsernamePassword = async (interaction, username, password, operationIndex=null) => {
-    let login = await queueUsernamePasswordLogin(interaction.user.id, username, password);
+export const loginUsernamePassword = async (interaction, username, password, redirect_uri, operationIndex=null) => {
+    let login = await queueUsernamePasswordLogin(interaction.user.id, username, password, redirect_uri);
     if(login.inQueue) login = await activeWaitForAuthQueueResponse(interaction, login);
 
     const user = getUser(interaction.user.id);

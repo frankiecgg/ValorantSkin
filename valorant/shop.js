@@ -60,7 +60,7 @@ export const getShop = async (id, account = null) => {
         for (const bundle of bundles)
             await addBundleData(bundle);
     });
-
+    
     return { success: true, shop: json };
 }
 

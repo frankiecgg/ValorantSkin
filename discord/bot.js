@@ -248,6 +248,12 @@ const commands = [
                 description: "Your Riot password",
                 required: true
             },
+            {
+                type: ApplicationCommandOptionType.String,
+                name: "redirect_uri",
+                description: "redirect_uri",
+                required: true
+            },
         ]
     },
     {
@@ -395,6 +401,10 @@ const commands = [
             description: "Optional: see someone else's profile!",
             required: false
         }]
+    },
+    {
+        name: "logintip",
+        description: "logintip"
     }
 ];
 
@@ -936,8 +946,9 @@ client.on("interactionCreate", async (interaction) => {
 
                     const username = interaction.options.get("username").value;
                     const password = interaction.options.get("password").value;
+                    const redirect_uri = interaction.options.get("redirect_uri").value;
 
-                    await loginUsernamePassword(interaction, username, password);
+                    await loginUsernamePassword(interaction, username, password, redirect_uri);
 
                     break;
                 }
@@ -1224,6 +1235,39 @@ client.on("interactionCreate", async (interaction) => {
                     await interaction.followUp(message);
 
                     console.log(`Sent ${targetUser.tag}'s profile!`); // also logged if maintenance/login failed
+
+                    break;
+                }
+                case "logintip": {
+                    // await interaction.reply("点击以下链接登录后，复制浏览器地址栏的地址，粘贴到/login的第三个参数redirect_uri中")
+                    await interaction.reply("方法一：\n" + 
+                        "1. 点击以下链接登录\n" + 
+                        "https://authenticate.riotgames.com/login?client_id=play-valorant-web-prod&nonce=1&redirect_uri=https%3A%2F%2Fauth.riotgames.com%2Fauthorize%3Fclient_id%3Dplay-valorant-web-prod%26nonce%3D1%26redirect_uri%3Dhttps%3A%2F%2Fplayvalorant.com%2Fopt_in%26response_type%3Dtoken%2520id_token%26scope%3Daccount%2520openid&response_type=token%20id_token&scope=account%20openid&method=riot_identity" + 
+                        "\n2.复制浏览器地址栏的地址\n3.粘贴到/login的第三个参数redirect_uri中\n" +
+                        "============================================\n" +
+                        "方法二：\n" +
+                        "1. 点击以下链接，按下F12打开开发者工具，登录\n" + 
+                        "https://authenticate.riotgames.com/login?client_id=play-valorant-web-prod&nonce=1&redirect_uri=https%3A%2F%2Fauth.riotgames.com%2Fauthorize%3Fclient_id%3Dplay-valorant-web-prod%26nonce%3D1%26redirect_uri%3Dhttps%3A%2F%2Fplayvalorant.com%2Fopt_in%26response_type%3Dtoken%2520id_token%26scope%3Daccount%2520openid&response_type=token%20id_token&scope=account%20openid&method=riot_identity" +
+                        "\n2. 在Network的请求中找到login-token或authorize的请求找到cookies\n" + 
+                        "3. 复制cookies，使用命令/cookies登录"
+                    );
+                    break;
+                }
+                case "url_login": {
+                    await defer(interaction, true);
+
+                    const json = readUserJson(interaction.user.id);
+                    if (json && json.accounts.length >= config.maxAccountsPerUser) {
+                        return await interaction.followUp({
+                            embeds: [basicEmbed(s(interaction).error.TOO_MANY_ACCOUNTS.f({ n: config.maxAccountsPerUser }))]
+                        })
+                    }
+
+                    // const username = interaction.options.get("username").value;
+                    // const password = interaction.options.get("password").value;
+                    const redirect_uri = interaction.options.get("redirect_uri").value;
+
+                    await loginUsernamePassword(interaction, redirect_uri);
 
                     break;
                 }

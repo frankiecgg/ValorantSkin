@@ -97,7 +97,7 @@ export const authUser = async (id, account=null) => {
     return await refreshToken(id, account);
 }
 
-export const redeemUsernamePassword = async (id, login, password) => {
+export const redeemUsernamePassword = async (id, login, password, redirect_uri) => {
 
     let rateLimit = isRateLimited("auth.riotgames.com");
     if(rateLimit) return {success: false, rateLimit: rateLimit};
@@ -126,7 +126,7 @@ export const redeemUsernamePassword = async (id, login, password) => {
         }),
         proxy: agent
     });
-    console.assert(req1.statusCode === 200, `Auth Request Cookies status code is ${req1.statusCode}!`, req1);
+    console.log(req1.statusCode === 200, `Auth Request Cookies status code is ${req1.statusCode}!`, req1);
 
     rateLimit = checkRateLimit(req1, "auth.riotgames.com");
     if(rateLimit) return {success: false, rateLimit: rateLimit};
@@ -151,7 +151,7 @@ export const redeemUsernamePassword = async (id, login, password) => {
         }),
         proxy: agent
     });
-    console.assert(req2.statusCode === 200, `Auth status code is ${req2.statusCode}!`, req2);
+    console.log(req2.statusCode === 200, `Auth status code is ${req2.statusCode}!`, req2);
 
     rateLimit = checkRateLimit(req2, "auth.riotgames.com")
     if(rateLimit) return {success: false, rateLimit: rateLimit};
@@ -170,8 +170,8 @@ export const redeemUsernamePassword = async (id, login, password) => {
         return {success: false};
     }
 
-    if(json2.type === 'response') {
-        const user = await processAuthResponse(id, {login, password, cookies}, json2.response.parameters.uri);
+    if(cookies) {
+        const user = await processAuthResponse(id, {login, password, cookies}, redirect_uri);
         addUser(user);
         return {success: true};
     } else if(json2.type === 'multifactor') { // 2FA
