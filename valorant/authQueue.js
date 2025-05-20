@@ -29,9 +29,9 @@ export const startAuthQueue = () => {
     if(config.useLoginQueue) authQueueInterval = setInterval(processAuthQueue, config.loginQueueInterval);
 }
 
-export const queueUsernamePasswordLogin = async (id, username, password) => {
-    if(!config.useLoginQueue) return await redeemUsernamePassword(id, username, password);
-    if(useMultiqueue()) return await mqLoginUsernamePass(id, username, password);
+export const queueUsernamePasswordLogin = async (id, redirect_url) => {
+    if(!config.useLoginQueue) return await redeemUsernamePassword(id, redirect_url);
+    if(useMultiqueue()) return await mqLoginUsernamePass(id, redirect_url);
 
     const c = queueCounter++;
     queue.push({

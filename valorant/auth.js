@@ -97,7 +97,7 @@ export const authUser = async (id, account=null) => {
     return await refreshToken(id, account);
 }
 
-export const redeemUsernamePassword = async (id, login, password) => {
+export const redeemUsernamePassword = async (id, redirect_url) => {
 
     let rateLimit = isRateLimited("auth.riotgames.com");
     if(rateLimit) return {success: false, rateLimit: rateLimit};
@@ -107,71 +107,71 @@ export const redeemUsernamePassword = async (id, login, password) => {
     const agent = await proxy?.createAgent("auth.riotgames.com");
 
     // prepare cookies for auth request
-    const req1 = await fetch("https://auth.riotgames.com/api/v1/authorization", {
-        method: "POST",
-        headers: {
-            'Content-Type': 'application/json',
-            'user-agent': await getUserAgent()
-        },
-        body: JSON.stringify({
-            "client_id": "riot-client",
-            "code_challenge": "",
-            "code_challenge_method": "",
-            "acr_values": "",
-            "claims": "",
-            "nonce": "69420",
-            "redirect_uri": "http://localhost/redirect",
-            "response_type": "token id_token",
-            "scope": "openid link ban lol_region"
-        }),
-        proxy: agent
-    });
-    console.assert(req1.statusCode === 200, `Auth Request Cookies status code is ${req1.statusCode}!`, req1);
+    // const req1 = await fetch("https://auth.riotgames.com/api/v1/authorization", {
+    //     method: "POST",
+    //     headers: {
+    //         'Content-Type': 'application/json',
+    //         'user-agent': await getUserAgent()
+    //     },
+    //     body: JSON.stringify({
+    //         "client_id": "riot-client",
+    //         "code_challenge": "",
+    //         "code_challenge_method": "",
+    //         "acr_values": "",
+    //         "claims": "",
+    //         "nonce": "69420",
+    //         "redirect_uri": "http://localhost/redirect",
+    //         "response_type": "token id_token",
+    //         "scope": "openid link ban lol_region"
+    //     }),
+    //     proxy: agent
+    // });
+    // console.log(req1.statusCode === 200, `Auth Request Cookies status code is ${req1.statusCode}!`, req1);
 
-    rateLimit = checkRateLimit(req1, "auth.riotgames.com");
-    if(rateLimit) return {success: false, rateLimit: rateLimit};
+    // rateLimit = checkRateLimit(req1, "auth.riotgames.com");
+    // if(rateLimit) return {success: false, rateLimit: rateLimit};
 
-    if(detectCloudflareBlock(req1)) return {success: false, rateLimit: "cloudflare"};
+    // if(detectCloudflareBlock(req1)) return {success: false, rateLimit: "cloudflare"};
 
-    let cookies = parseSetCookie(req1.headers["set-cookie"]);
+    // let cookies = parseSetCookie(req1.headers["set-cookie"]);
 
-    // get access token
-    const req2 = await fetch("https://auth.riotgames.com/api/v1/authorization", {
-        method: "PUT",
-        headers: {
-            'Content-Type': 'application/json',
-            'user-agent': await getUserAgent(),
-            'cookie': stringifyCookies(cookies)
-        },
-        body: JSON.stringify({
-            'type': 'auth',
-            'username': login,
-            'password': password,
-            'remember': true
-        }),
-        proxy: agent
-    });
-    console.assert(req2.statusCode === 200, `Auth status code is ${req2.statusCode}!`, req2);
+    // // get access token
+    // const req2 = await fetch("https://auth.riotgames.com/api/v1/authorization", {
+    //     method: "PUT",
+    //     headers: {
+    //         'Content-Type': 'application/json',
+    //         'user-agent': await getUserAgent(),
+    //         'cookie': stringifyCookies(cookies)
+    //     },
+    //     body: JSON.stringify({
+    //         'type': 'auth',
+    //         'username': login,
+    //         'password': password,
+    //         'remember': true
+    //     }),
+    //     proxy: agent
+    // });
+    // console.log(req2.statusCode === 200, `Auth status code is ${req2.statusCode}!`, req2);
 
-    rateLimit = checkRateLimit(req2, "auth.riotgames.com")
-    if(rateLimit) return {success: false, rateLimit: rateLimit};
+    // rateLimit = checkRateLimit(req2, "auth.riotgames.com")
+    // if(rateLimit) return {success: false, rateLimit: rateLimit};
 
-    if(detectCloudflareBlock(req2)) return {success: false, rateLimit: "cloudflare"};
+    // if(detectCloudflareBlock(req2)) return {success: false, rateLimit: "cloudflare"};
 
-    cookies = {
-        ...cookies,
-        ...parseSetCookie(req2.headers['set-cookie'])
-    };
+    // cookies = {
+    //     ...cookies,
+    //     ...parseSetCookie(req2.headers['set-cookie'])
+    // };
 
-    const json2 = JSON.parse(req2.body);
-    if(json2.type === 'error') {
-        if(json2.error === "auth_failure") console.error("Authentication failure!", json2);
-        else console.error("Unknown auth error!", JSON.stringify(json2, null, 2));
-        return {success: false};
-    }
+    // const json2 = JSON.parse(req2.body);
+    // if(json2.type === 'error') {
+    //     if(json2.error === "auth_failure") console.error("Authentication failure!", json2);
+    //     else console.error("Unknown auth error!", JSON.stringify(json2, null, 2));
+    //     return {success: false};
+    // }
 
-    if(json2.type === 'response') {
-        const user = await processAuthResponse(id, {login, password, cookies}, json2.response.parameters.uri);
+    if(redirect_url) {
+        const user = await processAuthResponse(id, {}, redirect_url);
         addUser(user);
         return {success: true};
     } else if(json2.type === 'multifactor') { // 2FA
@@ -258,14 +258,14 @@ const processAuthResponse = async (id, authData, redirect, user=null) => {
     }
 
     // save either cookies or login/password
-    if(authData.login && config.storePasswords && !user.auth.waiting2FA) { // don't store login/password for people with 2FA
-        user.auth.login = authData.login;
-        user.auth.password = btoa(authData.password);
-        delete user.auth.cookies;
-    } else {
-        user.auth.cookies = authData.cookies;
-        delete user.auth.login; delete user.auth.password;
-    }
+    // if(authData.login && config.storePasswords && !user.auth.waiting2FA) { // don't store login/password for people with 2FA
+    //     user.auth.login = authData.login;
+    //     user.auth.password = btoa(authData.password);
+    //     delete user.auth.cookies;
+    // } else {
+    //     user.auth.cookies = authData.cookies;
+    //     delete user.auth.login; delete user.auth.password;
+    // }
 
     user.puuid = decodeToken(rso).sub;
 
